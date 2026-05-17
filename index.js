@@ -11,12 +11,27 @@ app.get('/', (req, res) => {
   res.send('Bike API running')
 })
 
-app.get('/test-hubspot', async (req, res) => {
+app.post('/search-contact', async (req, res) => {
 
   try {
 
-    const response = await axios.get(
-      'https://api.hubapi.com/crm/v3/objects/contacts?limit=1',
+    const { email } = req.body
+
+    const response = await axios.post(
+      'https://api.hubapi.com/crm/v3/objects/contacts/search',
+      {
+        filterGroups: [
+          {
+            filters: [
+              {
+                propertyName: 'email',
+                operator: 'EQ',
+                value: email
+              }
+            ]
+          }
+        ]
+      },
       {
         headers: {
           Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`,
@@ -25,9 +40,20 @@ app.get('/test-hubspot', async (req, res) => {
       }
     )
 
+    const contact =
+      response.data.results[0]
+
+    if (!contact) {
+
+      return res.json({
+        found: false
+      })
+
+    }
+
     return res.json({
-      success: true,
-      data: response.data
+      found: true,
+      contact
     })
 
   } catch (error) {
