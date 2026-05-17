@@ -22,63 +22,42 @@ app.post('/search-contact', async (req, res) => {
       phone
     } = req.body
 
-    const searchResponse = await axios.post(
-      'https://api.hubapi.com/crm/v3/objects/contacts/search',
+    const response = await axios.post(
+      'https://api-eu1.hsforms.com/submissions/v3/integration/submit/26636031/f66ee250-4c4e-4666-8f1e-b8deefe3afab',
       {
-        filterGroups: [
+        fields: [
           {
-            filters: [
-              {
-                propertyName: 'email',
-                operator: 'EQ',
-                value: email
-              }
-            ]
+            name: 'email',
+            value: email
+          },
+          {
+            name: 'firstname',
+            value: firstname
+          },
+          {
+            name: 'lastname',
+            value: lastname
+          },
+          {
+            name: 'phone',
+            value: phone
           }
-        ]
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-
-    const existingContact =
-      searchResponse.data.results[0]
-
-    if (existingContact) {
-
-      return res.json({
-        found: true,
-        contact: existingContact
-      })
-
-    }
-
-    const createResponse = await axios.post(
-      'https://api.hubapi.com/crm/v3/objects/contacts',
-      {
-        properties: {
-          email,
-          firstname,
-          lastname,
-          phone
+        ],
+        context: {
+          pageUri: 'https://motortradeteam.com',
+          pageName: 'Motorbike Lead Form'
         }
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`,
           'Content-Type': 'application/json'
         }
       }
     )
 
     return res.json({
-      found: false,
-      created: true,
-      contact: createResponse.data
+      success: true,
+      hubspot: response.data
     })
 
   } catch (error) {
