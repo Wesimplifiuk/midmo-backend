@@ -15,9 +15,14 @@ app.post('/search-contact', async (req, res) => {
 
   try {
 
-    const { email } = req.body
+    const {
+      email,
+      firstname,
+      lastname,
+      phone
+    } = req.body
 
-    const response = await axios.post(
+    const searchResponse = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/contacts/search',
       {
         filterGroups: [
@@ -40,20 +45,40 @@ app.post('/search-contact', async (req, res) => {
       }
     )
 
-    const contact =
-      response.data.results[0]
+    const existingContact =
+      searchResponse.data.results[0]
 
-    if (!contact) {
+    if (existingContact) {
 
       return res.json({
-        found: false
+        found: true,
+        contact: existingContact
       })
 
     }
 
+    const createResponse = await axios.post(
+      'https://api.hubapi.com/crm/v3/objects/contacts',
+      {
+        properties: {
+          email,
+          firstname,
+          lastname,
+          phone
+        }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
     return res.json({
-      found: true,
-      contact
+      found: false,
+      created: true,
+      contact: createResponse.data
     })
 
   } catch (error) {
