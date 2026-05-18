@@ -186,6 +186,195 @@ app.post('/vehicle', async (req, res) => {
   }
 
 })
+
+
+// CREATE BIKE + ASSOCIATE CONTACT
+
+app.post('/create-bike', async (req, res) => {
+
+  try {
+
+    const {
+
+      email,
+
+      registration,
+      make,
+      model,
+      variant,
+      engineSize,
+      mileage,
+      year,
+      colour,
+      fuelType,
+      transmission,
+
+      mot
+
+    } = req.body
+
+    // =========================
+    // SEARCH CONTACT
+    // =========================
+
+    const contactSearch =
+      await axios.post(
+
+        'https://api.hubapi.com/crm/v3/objects/contacts/search',
+
+        {
+          filterGroups: [
+            {
+              filters: [
+                {
+                  propertyName: 'email',
+                  operator: 'EQ',
+                  value: email
+                }
+              ]
+            }
+          ]
+        },
+
+        {
+          headers: {
+            Authorization:
+              `Bearer ${process.env.HUBSPOT_TOKEN}`,
+            'Content-Type':
+              'application/json'
+          }
+        }
+
+      )
+
+    const contact =
+      contactSearch.data.results[0]
+
+    if (!contact) {
+
+      return res.status(404).json({
+
+        success: false,
+        error: 'Contact not found'
+
+      })
+
+    }
+
+    // =========================
+    // CREATE BIKE
+    // =========================
+
+    const bikeResponse =
+      await axios.post(
+
+        'https://api.hubapi.com/crm/v3/objects/2-145432491',
+
+        {
+
+          properties: {
+
+            registration,
+            make,
+            model,
+            variant,
+
+            engine_size:
+              engineSize,
+
+            mileage,
+
+            year,
+            colour,
+
+            fuel_type:
+              fuelType,
+
+            transmission,
+
+            // MULTI SELECT
+            mot:
+              Array.isArray(mot)
+                ? mot.join(';')
+                : mot
+
+          }
+
+        },
+
+        {
+          headers: {
+            Authorization:
+              `Bearer ${process.env.HUBSPOT_TOKEN}`,
+            'Content-Type':
+              'application/json'
+          }
+        }
+
+      )
+
+    const bikeId =
+      bikeResponse.data.id
+
+    // =========================
+    // ASSOCIATE
+    // =========================
+
+    await axios.put(
+
+      `https://api.hubapi.com/crm/v4/objects/contacts/${contact.id}/associations/2-145432491/${bikeId}`,
+
+      [
+        {
+          associationCategory:
+            'HUBSPOT_DEFINED',
+          associationTypeId: 1
+        }
+      ],
+
+      {
+        headers: {
+          Authorization:
+            `Bearer ${process.env.HUBSPOT_TOKEN}`,
+          'Content-Type':
+            'application/json'
+        }
+      }
+
+    )
+
+    return res.json({
+
+      success: true,
+
+      bikeId
+
+    })
+
+  } catch (error) {
+
+    console.log(
+      error.response?.data ||
+      error.message
+    )
+
+    return res.status(500).json({
+
+      success: false,
+
+      error:
+        error.response?.data ||
+        error.message
+
+    })
+
+  }
+
+})
+
+
+
+
 const PORT =
   process.env.PORT || 3000
 
