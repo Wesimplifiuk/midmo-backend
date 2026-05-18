@@ -7,12 +7,8 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// ROOT
-
 app.get('/', (req, res) => {
-
   res.send('Bike API running')
-
 })
 
 // SEARCH CONTACT
@@ -21,33 +17,16 @@ app.post('/search-contact', async (req, res) => {
 
   try {
 
-    const {
-      email,
-      firstname,
-      lastname,
-      phone
-    } = req.body
+    const { email, firstname, lastname, phone } = req.body
 
     const response = await axios.post(
-      'https://api-eu1.hsforms.com/submissions/v3/integration/submit/26636031/f66ee250-4c4e-4666-8f1e-b8deefe3afab',
+      'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/1d29ad99-487b-4191-971f-1b72299c6947',
       {
         fields: [
-          {
-            name: 'email',
-            value: email
-          },
-          {
-            name: 'firstname',
-            value: firstname
-          },
-          {
-            name: 'lastname',
-            value: lastname
-          },
-          {
-            name: 'phone',
-            value: phone
-          }
+          { name: 'email',     value: email },
+          { name: 'firstname', value: firstname },
+          { name: 'lastname',  value: lastname },
+          { name: 'phone',     value: phone }
         ],
         context: {
           pageUri: 'https://motortradeteam.com',
@@ -55,9 +34,7 @@ app.post('/search-contact', async (req, res) => {
         }
       },
       {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       }
     )
 
@@ -68,133 +45,64 @@ app.post('/search-contact', async (req, res) => {
 
   } catch (error) {
 
-    console.log(
-      error.response?.data ||
-      error.message
-    )
+    console.log(JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
       success: false,
-      error:
-        error.response?.data ||
-        error.message
+      error: error.response?.data || error.message
     })
 
   }
 
 })
 
-// VEHICLE ENDPOINT
-
-// VEHICLE ENDPOINT
+// VEHICLE LOOKUP
 
 app.post('/vehicle', async (req, res) => {
 
   try {
 
-    const {
-      registration
-    } = req.body
+    const { registration } = req.body
 
-    console.log(
-      'SEARCHING VEHICLE:',
-      registration
-    )
-
-    const vehicleResponse =
-      await axios.get(
-
-        'https://uk1.ukvehicledata.co.uk/api/datapackage/VehicleData',
-
-        {
-          params: {
-
-            auth_apikey:
-              '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
-
-            key_VRM:
-              registration,
-
-            api_nullitems: 1
-
-          }
-
+    const vehicleResponse = await axios.get(
+      'https://uk1.ukvehicledata.co.uk/api/datapackage/VehicleData',
+      {
+        params: {
+          auth_apikey:  '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
+          key_VRM:      registration,
+          api_nullitems: 1
         }
-
-      )
-
-    console.log(
-      vehicleResponse.data
+      }
     )
 
-    const data =
-      vehicleResponse.data
-        .Response
-        .DataItems
+    const data = vehicleResponse.data.Response.DataItems
 
     return res.json({
-
       success: true,
-
       vehicle: {
-
-        make:
-          data.VehicleRegistration?.Make || '',
-
-        model:
-          data.VehicleRegistration?.Model || '',
-
-        variant:
-          data.SmmtDetails?.ModelVariant || '',
-
-        year:
-          data.VehicleRegistration?.YearOfManufacture || '',
-
-        engineSize:
-          data.VehicleRegistration?.EngineCapacity || '',
-
-        colour:
-          data.VehicleRegistration?.Colour || '',
-
-        fuelType:
-          data.VehicleRegistration?.FuelType || '',
-
-        transmission:
-          data.VehicleRegistration?.Transmission || ''
-
+        make:       data.ClassificationDetails?.Smmt?.Make             || '',
+        model:      data.ClassificationDetails?.Smmt?.Range            || '',
+        variant:    data.SmmtDetails?.ModelVariant                     || '',
+        year:       data.VehicleRegistration?.YearOfManufacture        || '',
+        engineSize: data.VehicleRegistration?.EngineCapacity           || '',
+        colour:     data.VehicleRegistration?.Colour                   || ''
       }
-
     })
 
   } catch (error) {
 
-    console.log(
-      error.response?.data ||
-      error.message
-    )
+    console.log(JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
-
       success: false,
-
-      error:
-        error.response?.data ||
-        error.message
-
+      error: error.response?.data || error.message
     })
 
   }
 
 })
 
-
-// CREATE BIKE + ASSOCIATE CONTACT
-
-// CREATE BIKE + ASSOCIATE CONTACT
-
-// CREATE BIKE FROM HUBSPOT FORM
-
-// CREATE BIKE + BUSCAR SU ID
+// CREATE BIKE
 
 app.post('/create-bike', async (req, res) => {
 
@@ -204,32 +112,32 @@ app.post('/create-bike', async (req, res) => {
       email,
       vehicle_registration,
       make,
+      model,
       variant,
-      engine_size,
+      engine_capacity,
       mileage,
       year,
       colour,
       mot
     } = req.body
 
-    // 1. SUBMIT FORM (crea el objeto y lo asocia al contacto)
-
     await axios.post(
-      'https://api-eu1.hsforms.com/submissions/v3/integration/submit/26636031/f01310fa-918d-4909-9502-2f6f387d4212',
+      'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/3ead7efb-1a49-414b-b924-349eb627eeb8',
       {
         fields: [
-          { name: 'email', value: email },
+          { name: 'email',                            value: email },
           { name: '2-202877425/vehicle_registration', value: vehicle_registration },
-          { name: '2-202877425/make', value: make },
-          { name: '2-202877425/variant', value: variant },
-          { name: '2-202877425/engine_size', value: engine_size },
-          { name: '2-202877425/mileage', value: mileage ? String(mileage) : '0' },
-          { name: '2-202877425/year', value: year },
-          { name: '2-202877425/colour', value: colour },
-          { name: '2-202877425/mot', value: Array.isArray(mot) ? mot.join(';') : mot }
+          { name: '2-202877425/make',                 value: make },
+          { name: '2-202877425/model',                value: model },
+          { name: '2-202877425/trim',                 value: variant },
+          { name: '2-202877425/engine_capacity',      value: engine_capacity ? Number(engine_capacity) : 0 },
+          { name: '2-202877425/mileage',              value: mileage ? Number(mileage) : 0 },
+          { name: '2-202877425/year',                 value: year ? new Date(year + '-01-01').getTime() : null },
+          { name: '2-202877425/colour',               value: colour },
+          { name: '2-202877425/mot',                  value: Array.isArray(mot) ? mot.join(';') : mot }
         ],
         context: {
-          pageUri: 'https://thomasjamesbromley.wixstudio.com',
+          pageUri: 'https://motortradeteam.com',
           pageName: 'Bike Form'
         }
       },
@@ -237,8 +145,6 @@ app.post('/create-bike', async (req, res) => {
         headers: { 'Content-Type': 'application/json' }
       }
     )
-
-    // 2. BUSCAR EL OBJETO RECIEN CREADO POR vehicle_registration
 
     const searchResponse = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/2-202877425/search',
@@ -248,8 +154,8 @@ app.post('/create-bike', async (req, res) => {
             filters: [
               {
                 propertyName: 'vehicle_registration',
-                operator: 'EQ',
-                value: vehicle_registration
+                operator:     'EQ',
+                value:        vehicle_registration
               }
             ]
           }
@@ -257,14 +163,14 @@ app.post('/create-bike', async (req, res) => {
         sorts: [
           {
             propertyName: 'createdate',
-            direction: 'DESCENDING'
+            direction:    'DESCENDING'
           }
         ],
         limit: 1
       },
       {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
         }
       }
@@ -278,14 +184,12 @@ app.post('/create-bike', async (req, res) => {
 
     return res.json({
       success: true,
-      bikeId: bikeId
+      bikeId:  bikeId
     })
 
   } catch (error) {
 
-    console.log(
-      JSON.stringify(error.response?.data, null, 2)
-    )
+    console.log(JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
       success: false,
@@ -296,8 +200,7 @@ app.post('/create-bike', async (req, res) => {
 
 })
 
-
-// UPDATE BIKE (STEP 3)
+// UPDATE BIKE - STEP 3
 
 app.post('/update-bike', async (req, res) => {
 
@@ -307,27 +210,32 @@ app.post('/update-bike', async (req, res) => {
       bikeId,
       motorcycle_condition,
       do_you_have_the_keys_,
-      do_you_have_the_v5c_,
       do_you_know_how_much_you_are_looking_for_,
       when_are_you_looking_to_sell_your_bike,
       bike_owner_postal_code
     } = req.body
 
+    if (!bikeId) {
+      return res.status(400).json({
+        success: false,
+        error: 'bikeId is required'
+      })
+    }
+
     const response = await axios.patch(
       'https://api.hubapi.com/crm/v3/objects/2-202877425/' + bikeId,
       {
         properties: {
-          motorcycle_condition: motorcycle_condition,
-          do_you_have_the_keys_: do_you_have_the_keys_,
-          do_you_have_the_v5c_: do_you_have_the_v5c_,
+          motorcycle_condition:                      motorcycle_condition,
+          do_you_have_the_keys_:                     do_you_have_the_keys_,
           do_you_know_how_much_you_are_looking_for_: do_you_know_how_much_you_are_looking_for_,
-          when_are_you_looking_to_sell_your_bike: when_are_you_looking_to_sell_your_bike,
-          bike_owner_postal_code: bike_owner_postal_code
+          when_are_you_looking_to_sell_your_bike:    when_are_you_looking_to_sell_your_bike,
+          bike_owner_postal_code:                    bike_owner_postal_code
         }
       },
       {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
         }
       }
@@ -340,9 +248,7 @@ app.post('/update-bike', async (req, res) => {
 
   } catch (error) {
 
-    console.log(
-      JSON.stringify(error.response?.data, null, 2)
-    )
+    console.log(JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
       success: false,
@@ -353,15 +259,8 @@ app.post('/update-bike', async (req, res) => {
 
 })
 
-
-
-const PORT =
-  process.env.PORT || 3000
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
-
-  console.log(
-    `Server running on ${PORT}`
-  )
-
+  console.log('Server running on port ' + PORT)
 })
