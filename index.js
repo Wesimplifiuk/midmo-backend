@@ -190,6 +190,8 @@ app.post('/vehicle', async (req, res) => {
 
 // CREATE BIKE + ASSOCIATE CONTACT
 
+// CREATE BIKE + ASSOCIATE CONTACT
+
 app.post('/create-bike', async (req, res) => {
 
   try {
@@ -198,17 +200,13 @@ app.post('/create-bike', async (req, res) => {
 
       email,
 
-      registration,
+      vehicle_registration,
       make,
-      model,
       variant,
-      engineSize,
+      engine_size,
       mileage,
       year,
       colour,
-      fuelType,
-      transmission,
-
       mot
 
     } = req.body
@@ -261,8 +259,13 @@ app.post('/create-bike', async (req, res) => {
 
     }
 
+    console.log(
+      'CONTACT FOUND:',
+      contact.id
+    )
+
     // =========================
-    // CREATE BIKE
+    // CREATE BIKE OBJECT
     // =========================
 
     const bikeResponse =
@@ -274,23 +277,13 @@ app.post('/create-bike', async (req, res) => {
 
           properties: {
 
-            registration,
+            vehicle_registration,
             make,
-            model,
             variant,
-
-            engine_size:
-              engineSize,
-
+            engine_size,
             mileage,
-
             year,
             colour,
-
-            fuel_type:
-              fuelType,
-
-            transmission,
 
             // MULTI SELECT
             mot:
@@ -316,8 +309,13 @@ app.post('/create-bike', async (req, res) => {
     const bikeId =
       bikeResponse.data.id
 
+    console.log(
+      'BIKE CREATED:',
+      bikeId
+    )
+
     // =========================
-    // ASSOCIATE
+    // ASSOCIATE CONTACT ↔ BIKE
     // =========================
 
     await axios.put(
@@ -328,6 +326,7 @@ app.post('/create-bike', async (req, res) => {
         {
           associationCategory:
             'HUBSPOT_DEFINED',
+
           associationTypeId: 1
         }
       ],
@@ -343,11 +342,16 @@ app.post('/create-bike', async (req, res) => {
 
     )
 
+    console.log(
+      'ASSOCIATION CREATED'
+    )
+
     return res.json({
 
       success: true,
 
-      bikeId
+      bikeId,
+      contactId: contact.id
 
     })
 
