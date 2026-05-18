@@ -101,28 +101,24 @@ app.post('/vehicle', async (req, res) => {
       registration
     )
 
-    // REQUEST TO VEHICLE DATA GLOBAL
-
     const vehicleResponse =
-      await axios.post(
+      await axios.get(
 
-        'https://API-ENDPOINT-HERE',
-
-        {
-          registrationNumber:
-            registration
-        },
+        'https://uk1.ukvehicledata.co.uk/api/datapackage/VehicleData',
 
         {
-          headers: {
+          params: {
 
-            'Content-Type':
-              'application/json',
+            auth_apikey:
+              '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
 
-            Authorization:
-              `Bearer ${process.env.VEHICLE_API_KEY}`
+            key_VRM:
+              registration,
+
+            api_nullitems: 1
 
           }
+
         }
 
       )
@@ -131,7 +127,10 @@ app.post('/vehicle', async (req, res) => {
       vehicleResponse.data
     )
 
-    // MAP RESPONSE
+    const data =
+      vehicleResponse.data
+        .Response
+        .DataItems
 
     return res.json({
 
@@ -140,22 +139,28 @@ app.post('/vehicle', async (req, res) => {
       vehicle: {
 
         make:
-          vehicleResponse.data.make || '',
+          data.VehicleRegistration?.Make || '',
 
         model:
-          vehicleResponse.data.model || '',
+          data.VehicleRegistration?.Model || '',
 
         variant:
-          vehicleResponse.data.variant || '',
+          data.SmmtDetails?.ModelVariant || '',
 
         year:
-          vehicleResponse.data.year || '',
+          data.VehicleRegistration?.YearOfManufacture || '',
 
         engineSize:
-          vehicleResponse.data.engineSize || '',
+          data.VehicleRegistration?.EngineCapacity || '',
 
         colour:
-          vehicleResponse.data.colour || ''
+          data.VehicleRegistration?.Colour || '',
+
+        fuelType:
+          data.VehicleRegistration?.FuelType || '',
+
+        transmission:
+          data.VehicleRegistration?.Transmission || ''
 
       }
 
