@@ -86,6 +86,8 @@ app.post('/search-contact', async (req, res) => {
 
 // VEHICLE ENDPOINT
 
+// VEHICLE ENDPOINT
+
 app.post('/vehicle', async (req, res) => {
 
   try {
@@ -99,7 +101,37 @@ app.post('/vehicle', async (req, res) => {
       registration
     )
 
-    // TEMP MOCK RESPONSE
+    // REQUEST TO VEHICLE DATA GLOBAL
+
+    const vehicleResponse =
+      await axios.post(
+
+        'https://API-ENDPOINT-HERE',
+
+        {
+          registrationNumber:
+            registration
+        },
+
+        {
+          headers: {
+
+            'Content-Type':
+              'application/json',
+
+            Authorization:
+              `Bearer ${process.env.VEHICLE_API_KEY}`
+
+          }
+        }
+
+      )
+
+    console.log(
+      vehicleResponse.data
+    )
+
+    // MAP RESPONSE
 
     return res.json({
 
@@ -107,12 +139,23 @@ app.post('/vehicle', async (req, res) => {
 
       vehicle: {
 
-        make: 'Yamaha',
-        model: 'MT-07',
-        variant: 'ABS',
-        year: '2021',
-        engineSize: '689cc',
-        colour: 'Black'
+        make:
+          vehicleResponse.data.make || '',
+
+        model:
+          vehicleResponse.data.model || '',
+
+        variant:
+          vehicleResponse.data.variant || '',
+
+        year:
+          vehicleResponse.data.year || '',
+
+        engineSize:
+          vehicleResponse.data.engineSize || '',
+
+        colour:
+          vehicleResponse.data.colour || ''
 
       }
 
@@ -120,19 +163,24 @@ app.post('/vehicle', async (req, res) => {
 
   } catch (error) {
 
-    console.log(error)
+    console.log(
+      error.response?.data ||
+      error.message
+    )
 
     return res.status(500).json({
 
       success: false,
-      error: error.message
+
+      error:
+        error.response?.data ||
+        error.message
 
     })
 
   }
 
 })
-
 const PORT =
   process.env.PORT || 3000
 
