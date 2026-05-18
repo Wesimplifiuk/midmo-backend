@@ -192,6 +192,8 @@ app.post('/vehicle', async (req, res) => {
 
 // CREATE BIKE + ASSOCIATE CONTACT
 
+// CREATE BIKE FROM HUBSPOT FORM
+
 app.post('/create-bike', async (req, res) => {
 
   try {
@@ -211,85 +213,90 @@ app.post('/create-bike', async (req, res) => {
 
     } = req.body
 
-    // =========================
-    // SEARCH CONTACT
-    // =========================
-
-    const contactSearch =
+    const response =
       await axios.post(
 
-        'https://api.hubapi.com/crm/v3/objects/contacts/search',
+        'https://api-eu1.hsforms.com/submissions/v3/integration/submit/26636031/f01310fa-918d-4909-9502-2f6f387d4212',
 
         {
-          filterGroups: [
+
+          fields: [
+
             {
-              filters: [
-                {
-                  propertyName: 'email',
-                  operator: 'EQ',
-                  value: email
-                }
-              ]
+              name:
+                'email',
+              value:
+                email
+            },
+
+            {
+              name:
+                'vehicle_registration',
+              value:
+                vehicle_registration
+            },
+
+            {
+              name:
+                'make',
+              value:
+                make
+            },
+
+            {
+              name:
+                'variant',
+              value:
+                variant
+            },
+
+            {
+              name:
+                'engine_size',
+              value:
+                engine_size
+            },
+
+            {
+              name:
+                'mileage',
+              value:
+                mileage
+            },
+
+            {
+              name:
+                'year',
+              value:
+                year
+            },
+
+            {
+              name:
+                'colour',
+              value:
+                colour
+            },
+
+            {
+              name:
+                'mot',
+
+              value:
+                Array.isArray(mot)
+                  ? mot.join(';')
+                  : mot
             }
-          ]
-        },
 
-        {
-          headers: {
-            Authorization:
-              `Bearer ${process.env.HUBSPOT_TOKEN}`,
-            'Content-Type':
-              'application/json'
-          }
-        }
+          ],
 
-      )
+          context: {
 
-    const contact =
-      contactSearch.data.results[0]
+            pageUri:
+              'https://thomasjamesbromley.wixstudio.com',
 
-    if (!contact) {
-
-      return res.status(404).json({
-
-        success: false,
-        error: 'Contact not found'
-
-      })
-
-    }
-
-    console.log(
-      'CONTACT FOUND:',
-      contact.id
-    )
-
-    // =========================
-    // CREATE BIKE OBJECT
-    // =========================
-
-    const bikeResponse =
-      await axios.post(
-
-        'https://api.hubapi.com/crm/v3/objects/2-145432491',
-
-        {
-
-          properties: {
-
-            vehicle_registration,
-            make,
-            variant,
-            engine_size,
-            mileage,
-            year,
-            colour,
-
-            // MULTI SELECT
-            mot:
-              Array.isArray(mot)
-                ? mot.join(';')
-                : mot
+            pageName:
+              'Bike Form'
 
           }
 
@@ -297,69 +304,29 @@ app.post('/create-bike', async (req, res) => {
 
         {
           headers: {
-            Authorization:
-              `Bearer ${process.env.HUBSPOT_TOKEN}`,
             'Content-Type':
               'application/json'
           }
         }
 
       )
-
-    const bikeId =
-      bikeResponse.data.id
-
-    console.log(
-      'BIKE CREATED:',
-      bikeId
-    )
-
-    // =========================
-    // ASSOCIATE CONTACT ↔ BIKE
-    // =========================
-
-    await axios.put(
-
-      `https://api.hubapi.com/crm/v4/objects/contacts/${contact.id}/associations/2-145432491/${bikeId}`,
-
-      [
-        {
-          associationCategory:
-            'HUBSPOT_DEFINED',
-
-          associationTypeId: 1
-        }
-      ],
-
-      {
-        headers: {
-          Authorization:
-            `Bearer ${process.env.HUBSPOT_TOKEN}`,
-          'Content-Type':
-            'application/json'
-        }
-      }
-
-    )
-
-    console.log(
-      'ASSOCIATION CREATED'
-    )
 
     return res.json({
 
       success: true,
-
-      bikeId,
-      contactId: contact.id
+      response:
+        response.data
 
     })
 
   } catch (error) {
 
     console.log(
-      error.response?.data ||
-      error.message
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
     )
 
     return res.status(500).json({
