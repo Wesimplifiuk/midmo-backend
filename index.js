@@ -103,7 +103,6 @@ app.post('/vehicle', async (req, res) => {
 })
 
 // CREATE BIKE
-
 app.post('/create-bike', async (req, res) => {
 
   try {
@@ -120,6 +119,8 @@ app.post('/create-bike', async (req, res) => {
       colour,
       mot
     } = req.body
+
+    // 1. SUBMIT FORM
 
     await axios.post(
       'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/3ead7efb-1a49-414b-b924-349eb627eeb8',
@@ -146,7 +147,9 @@ app.post('/create-bike', async (req, res) => {
       }
     )
 
-    const searchResponse = await axios.post(
+    // 2. BUSCAR BIKE POR vehicle_registration
+
+    const bikeSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/search',
       {
         filterGroups: [
@@ -154,37 +157,81 @@ app.post('/create-bike', async (req, res) => {
             filters: [
               {
                 propertyName: 'vehicle_registration',
-                operator:     'EQ',
-                value:        vehicle_registration
+                operator: 'EQ',
+                value: vehicle_registration
               }
             ]
           }
         ],
-        sorts: [
+        sorts: [{ propertyName: 'createdate', direction: 'DESCENDING' }],
+        limit: 1
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
+        }
+      }
+    )
+
+    const bikeResults = bikeSearch.data.results
+    const bikeId = bikeResults && bikeResults.length > 0 ? bikeResults[0].id : null
+
+    // 3. BUSCAR CONTACTO POR EMAIL
+
+    const contactSearch = await axios.post(
+      'https://api.hubapi.com/crm/v3/objects/contacts/search',
+      {
+        filterGroups: [
           {
-            propertyName: 'createdate',
-            direction:    'DESCENDING'
+            filters: [
+              {
+                propertyName: 'email',
+                operator: 'EQ',
+                value: email
+              }
+            ]
           }
         ],
         limit: 1
       },
       {
         headers: {
-          'Content-Type':  'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
         }
       }
     )
 
-    const results = searchResponse.data.results
+    const contactResults = contactSearch.data.results
+    const contactId = contactResults && contactResults.length > 0 ? contactResults[0].id : null
 
-    const bikeId = results && results.length > 0
-      ? results[0].id
-      : null
+    // 4. ASOCIAR BIKE CON CONTACTO
+
+    if (bikeId && contactId) {
+
+      await axios.put(
+        'https://api.hubapi.com/crm/v4/objects/2-145432491/' + bikeId + '/associations/contacts/' + contactId,
+        [
+          {
+            associationCategory: 'HUBSPOT_DEFINED',
+            associationTypeId: 1
+          }
+        ],
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
+          }
+        }
+      )
+
+    }
 
     return res.json({
       success: true,
-      bikeId:  bikeId
+      bikeId: bikeId,
+      contactId: contactId
     })
 
   } catch (error) {
@@ -199,7 +246,6 @@ app.post('/create-bike', async (req, res) => {
   }
 
 })
-
 // UPDATE BIKE - STEP 3
 
 app.post('/update-bike', async (req, res) => {
