@@ -255,25 +255,24 @@ app.post('/update-bike', async (req, res) => {
     const {
       bikeId,
       motorcycle_condition,
-      do_you_have_the_keys_,
+      do_you_have_the_keys_and_v5,
       do_you_know_how_much_you_are_looking_for_,
       when_are_you_looking_to_sell_your_bike,
       bike_owner_postal_code
     } = req.body
 
     if (!bikeId) {
-      return res.status(400).json({
-        success: false,
-        error: 'bikeId is required'
-      })
+      return res.status(400).json({ success: false, error: 'bikeId is required' })
     }
+
+    console.log('[update-bike] Updating bikeId:', bikeId)
 
     const response = await axios.patch(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/' + bikeId,
       {
         properties: {
           motorcycle_condition:                      motorcycle_condition,
-          do_you_have_the_keys_:                     do_you_have_the_keys_,
+          do_you_have_the_keys_and_v5:               do_you_have_the_keys_and_v5,
           do_you_know_how_much_you_are_looking_for_: do_you_know_how_much_you_are_looking_for_,
           when_are_you_looking_to_sell_your_bike:    when_are_you_looking_to_sell_your_bike,
           bike_owner_postal_code:                    bike_owner_postal_code
@@ -281,20 +280,20 @@ app.post('/update-bike', async (req, res) => {
       },
       {
         headers: {
-          'Content-Type':  'application/json',
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
         }
       }
     )
 
-    return res.json({
-      success: true,
-      data: response.data
-    })
+    console.log('[update-bike] Success:', JSON.stringify(response.data, null, 2))
+
+    return res.json({ success: true, data: response.data })
 
   } catch (error) {
 
-    console.log(JSON.stringify(error.response?.data, null, 2))
+    console.log('[update-bike] ERROR:', JSON.stringify(error.response?.data, null, 2))
+    console.log('[update-bike] ERROR status:', error.response?.status)
 
     return res.status(500).json({
       success: false,
