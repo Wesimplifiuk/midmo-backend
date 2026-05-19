@@ -169,7 +169,7 @@ app.post('/create-bike', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
+          'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
         }
       }
     )
@@ -198,7 +198,7 @@ app.post('/create-bike', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
+          'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
         }
       }
     )
@@ -221,7 +221,7 @@ app.post('/create-bike', async (req, res) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
+            'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
           }
         }
       )
@@ -281,7 +281,7 @@ app.post('/update-bike', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + process.env.HUBSPOT_API_KEY
+          'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
         }
       }
     )
