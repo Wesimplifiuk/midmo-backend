@@ -11,8 +11,6 @@ app.get('/', (req, res) => {
   res.send('Bike API running')
 })
 
-// CHECK ENV
-
 app.get('/check-env', (req, res) => {
   res.json({
     hasToken: !!process.env.HUBSPOT_TOKEN,
@@ -21,8 +19,6 @@ app.get('/check-env', (req, res) => {
       : 'NOT SET'
   })
 })
-
-// CHECK OBJECTS
 
 app.get('/check-objects', async (req, res) => {
   try {
@@ -48,8 +44,6 @@ app.get('/check-objects', async (req, res) => {
   }
 })
 
-// CHECK ASSOCIATIONS
-
 app.get('/check-associations', async (req, res) => {
   try {
     const response = await axios.get(
@@ -74,7 +68,7 @@ app.post('/search-contact', async (req, res) => {
 
     const { email, firstname, lastname, phone } = req.body
 
-    console.log('[search-contact] Submitting contact form for:', email)
+    console.log('[search-contact] Submitting for:', email)
 
     const response = await axios.post(
       'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/1d29ad99-487b-4191-971f-1b72299c6947',
@@ -95,7 +89,7 @@ app.post('/search-contact', async (req, res) => {
       }
     )
 
-    console.log('[search-contact] Form response:', JSON.stringify(response.data, null, 2))
+    console.log('[search-contact] OK:', JSON.stringify(response.data, null, 2))
 
     return res.json({ success: true, hubspot: response.data })
 
@@ -177,7 +171,7 @@ app.post('/create-bike', async (req, res) => {
       mot
     } = req.body
 
-    console.log('[create-bike] Starting for registration:', vehicle_registration, 'email:', email)
+    console.log('[create-bike] Starting - registration:', vehicle_registration, '| email:', email)
 
     // 1. SUBMIT BIKE FORM
 
@@ -204,15 +198,15 @@ app.post('/create-bike', async (req, res) => {
       { headers: { 'Content-Type': 'application/json' } }
     )
 
-    console.log('[create-bike] Form submitted OK:', JSON.stringify(formResponse.data, null, 2))
+    console.log('[create-bike] Form OK:', JSON.stringify(formResponse.data, null, 2))
 
-    // DELAY PARA QUE HUBSPOT PROCESE EL FORM
+    // DELAY PARA QUE HUBSPOT PROCESE
 
     await new Promise(function (resolve) { setTimeout(resolve, 2000) })
 
     // 2. BUSCAR BIKE
 
-    console.log('[create-bike] Searching bike by registration:', vehicle_registration)
+    console.log('[create-bike] Searching bike...')
 
     const bikeSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/search',
@@ -222,8 +216,8 @@ app.post('/create-bike', async (req, res) => {
             filters: [
               {
                 propertyName: 'vehicle_registration',
-                operator: 'EQ',
-                value: vehicle_registration
+                operator:     'EQ',
+                value:        vehicle_registration
               }
             ]
           }
@@ -233,7 +227,7 @@ app.post('/create-bike', async (req, res) => {
       },
       {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
         }
       }
@@ -247,7 +241,7 @@ app.post('/create-bike', async (req, res) => {
 
     // 3. BUSCAR CONTACTO
 
-    console.log('[create-bike] Searching contact by email:', email)
+    console.log('[create-bike] Searching contact...')
 
     const contactSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/contacts/search',
@@ -257,8 +251,8 @@ app.post('/create-bike', async (req, res) => {
             filters: [
               {
                 propertyName: 'email',
-                operator: 'EQ',
-                value: email
+                operator:     'EQ',
+                value:        email
               }
             ]
           }
@@ -267,7 +261,7 @@ app.post('/create-bike', async (req, res) => {
       },
       {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
         }
       }
@@ -285,35 +279,17 @@ app.post('/create-bike', async (req, res) => {
 
       console.log('[create-bike] Associating bikeId:', bikeId, '-> contactId:', contactId)
 
-      // PRIMERO OBTENEMOS EL associationTypeId REAL
-
-      const labelsResponse = await axios.get(
-        'https://api.hubapi.com/crm/v4/associations/2-145432491/contacts/labels',
-        {
-          headers: {
-            'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
-          }
-        }
-      )
-
-      console.log('[create-bike] Available association labels:', JSON.stringify(labelsResponse.data, null, 2))
-
-      const labels = labelsResponse.data.results
-      const assocTypeId = labels && labels.length > 0 ? labels[0].typeId : 1
-
-      console.log('[create-bike] Using associationTypeId:', assocTypeId)
-
       const assocResponse = await axios.put(
         'https://api.hubapi.com/crm/v4/objects/2-145432491/' + bikeId + '/associations/contacts/' + contactId,
         [
           {
-            associationCategory: 'HUBSPOT_DEFINED',
-            associationTypeId: assocTypeId
+            associationCategory: 'USER_DEFINED',
+            associationTypeId:   24
           }
         ],
         {
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type':  'application/json',
             'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
           }
         }
@@ -329,7 +305,7 @@ app.post('/create-bike', async (req, res) => {
 
     return res.json({
       success: true,
-      bikeId: bikeId,
+      bikeId:    bikeId,
       contactId: contactId
     })
 
@@ -364,7 +340,7 @@ app.post('/update-bike', async (req, res) => {
     } = req.body
 
     if (!bikeId) {
-      console.log('[update-bike] ERROR: bikeId is missing')
+      console.log('[update-bike] ERROR: bikeId missing')
       return res.status(400).json({ success: false, error: 'bikeId is required' })
     }
 
@@ -390,7 +366,7 @@ app.post('/update-bike', async (req, res) => {
       },
       {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
         }
       }
