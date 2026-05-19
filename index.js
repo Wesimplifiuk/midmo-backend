@@ -48,6 +48,24 @@ app.get('/check-objects', async (req, res) => {
   }
 })
 
+// CHECK ASSOCIATIONS
+
+app.get('/check-associations', async (req, res) => {
+  try {
+    const response = await axios.get(
+      'https://api.hubapi.com/crm/v4/associations/2-145432491/contacts/labels',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
+        }
+      }
+    )
+    return res.json(response.data)
+  } catch (error) {
+    return res.status(500).json({ error: error.response?.data || error.message })
+  }
+})
+
 // SEARCH CONTACT
 
 app.post('/search-contact', async (req, res) => {
@@ -79,10 +97,7 @@ app.post('/search-contact', async (req, res) => {
 
     console.log('[search-contact] Form response:', JSON.stringify(response.data, null, 2))
 
-    return res.json({
-      success: true,
-      hubspot: response.data
-    })
+    return res.json({ success: true, hubspot: response.data })
 
   } catch (error) {
 
@@ -186,18 +201,16 @@ app.post('/create-bike', async (req, res) => {
           pageName: 'Bike Form'
         }
       },
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { headers: { 'Content-Type': 'application/json' } }
     )
 
     console.log('[create-bike] Form submitted OK:', JSON.stringify(formResponse.data, null, 2))
 
-    // SMALL DELAY TO LET HUBSPOT PROCESS THE FORM
+    // DELAY PARA QUE HUBSPOT PROCESE EL FORM
 
     await new Promise(function (resolve) { setTimeout(resolve, 2000) })
 
-    // 2. BUSCAR BIKE POR vehicle_registration
+    // 2. BUSCAR BIKE
 
     console.log('[create-bike] Searching bike by registration:', vehicle_registration)
 
@@ -226,15 +239,13 @@ app.post('/create-bike', async (req, res) => {
       }
     )
 
-    console.log('[create-bike] Bike search results:', JSON.stringify(bikeSearch.data, null, 2))
-
     const bikeId = bikeSearch.data.results && bikeSearch.data.results.length > 0
       ? bikeSearch.data.results[0].id
       : null
 
     console.log('[create-bike] bikeId:', bikeId)
 
-    // 3. BUSCAR CONTACTO POR EMAIL
+    // 3. BUSCAR CONTACTO
 
     console.log('[create-bike] Searching contact by email:', email)
 
@@ -262,8 +273,6 @@ app.post('/create-bike', async (req, res) => {
       }
     )
 
-    console.log('[create-bike] Contact search results:', JSON.stringify(contactSearch.data, null, 2))
-
     const contactId = contactSearch.data.results && contactSearch.data.results.length > 0
       ? contactSearch.data.results[0].id
       : null
@@ -274,28 +283,42 @@ app.post('/create-bike', async (req, res) => {
 
     if (bikeId && contactId) {
 
-      const assocUrl = 'https://api.hubapi.com/crm/v4/objects/2-145432491/' + bikeId + '/associations/contacts/' + contactId
+      console.log('[create-bike] Associating bikeId:', bikeId, '-> contactId:', contactId)
 
-      console.log('[create-bike] Associating via URL:', assocUrl)
+      // PRIMERO OBTENEMOS EL associationTypeId REAL
 
-   const assocResponse = await axios.put(
-  'https://api.hubapi.com/crm/v3/associations/2-145432491/contacts/batch/create',
-  {
-    inputs: [
-      {
-        from: { id: bikeId },
-        to: { id: contactId },
-        type: 'bike_to_contact'
-      }
-    ]
-  },
-  {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
-    }
-  }
-)
+      const labelsResponse = await axios.get(
+        'https://api.hubapi.com/crm/v4/associations/2-145432491/contacts/labels',
+        {
+          headers: {
+            'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
+          }
+        }
+      )
+
+      console.log('[create-bike] Available association labels:', JSON.stringify(labelsResponse.data, null, 2))
+
+      const labels = labelsResponse.data.results
+      const assocTypeId = labels && labels.length > 0 ? labels[0].typeId : 1
+
+      console.log('[create-bike] Using associationTypeId:', assocTypeId)
+
+      const assocResponse = await axios.put(
+        'https://api.hubapi.com/crm/v4/objects/2-145432491/' + bikeId + '/associations/contacts/' + contactId,
+        [
+          {
+            associationCategory: 'HUBSPOT_DEFINED',
+            associationTypeId: assocTypeId
+          }
+        ],
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
+          }
+        }
+      )
+
       console.log('[create-bike] Association OK:', JSON.stringify(assocResponse.data, null, 2))
 
     } else {
