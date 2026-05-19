@@ -11,6 +11,43 @@ app.get('/', (req, res) => {
   res.send('Bike API running')
 })
 
+// CHECK ENV
+
+app.get('/check-env', (req, res) => {
+  res.json({
+    hasToken: !!process.env.HUBSPOT_TOKEN,
+    tokenPrefix: process.env.HUBSPOT_TOKEN
+      ? process.env.HUBSPOT_TOKEN.substring(0, 15) + '...'
+      : 'NOT SET'
+  })
+})
+
+// CHECK OBJECTS
+
+app.get('/check-objects', async (req, res) => {
+  try {
+    const response = await axios.get(
+      'https://api.hubapi.com/crm/v3/schemas',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
+        }
+      }
+    )
+    return res.json({
+      objects: response.data.results.map(function (o) {
+        return {
+          name: o.name,
+          objectTypeId: o.objectTypeId,
+          label: o.labels && o.labels.singular
+        }
+      })
+    })
+  } catch (error) {
+    return res.status(500).json({ error: error.response?.data || error.message })
+  }
+})
+
 // SEARCH CONTACT
 
 app.post('/search-contact', async (req, res) => {
@@ -18,6 +55,8 @@ app.post('/search-contact', async (req, res) => {
   try {
 
     const { email, firstname, lastname, phone } = req.body
+
+    console.log('[search-contact] Submitting contact form for:', email)
 
     const response = await axios.post(
       'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/1d29ad99-487b-4191-971f-1b72299c6947',
@@ -38,6 +77,8 @@ app.post('/search-contact', async (req, res) => {
       }
     )
 
+    console.log('[search-contact] Form response:', JSON.stringify(response.data, null, 2))
+
     return res.json({
       success: true,
       hubspot: response.data
@@ -45,7 +86,7 @@ app.post('/search-contact', async (req, res) => {
 
   } catch (error) {
 
-    console.log(JSON.stringify(error.response?.data, null, 2))
+    console.log('[search-contact] ERROR:', JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
       success: false,
@@ -68,8 +109,8 @@ app.post('/vehicle', async (req, res) => {
       'https://uk1.ukvehicledata.co.uk/api/datapackage/VehicleData',
       {
         params: {
-          auth_apikey:  '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
-          key_VRM:      registration,
+          auth_apikey:   '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
+          key_VRM:       registration,
           api_nullitems: 1
         }
       }
@@ -80,18 +121,18 @@ app.post('/vehicle', async (req, res) => {
     return res.json({
       success: true,
       vehicle: {
-        make:       data.ClassificationDetails?.Smmt?.Make             || '',
-        model:      data.ClassificationDetails?.Smmt?.Range            || '',
-        variant:    data.SmmtDetails?.ModelVariant                     || '',
-        year:       data.VehicleRegistration?.YearOfManufacture        || '',
-        engineSize: data.VehicleRegistration?.EngineCapacity           || '',
-        colour:     data.VehicleRegistration?.Colour                   || ''
+        make:       data.ClassificationDetails?.Smmt?.Make      || '',
+        model:      data.ClassificationDetails?.Smmt?.Range     || '',
+        variant:    data.SmmtDetails?.ModelVariant              || '',
+        year:       data.VehicleRegistration?.YearOfManufacture || '',
+        engineSize: data.VehicleRegistration?.EngineCapacity    || '',
+        colour:     data.VehicleRegistration?.Colour            || ''
       }
     })
 
   } catch (error) {
 
-    console.log(JSON.stringify(error.response?.data, null, 2))
+    console.log('[vehicle] ERROR:', JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
       success: false,
@@ -103,6 +144,7 @@ app.post('/vehicle', async (req, res) => {
 })
 
 // CREATE BIKE
+
 app.post('/create-bike', async (req, res) => {
 
   try {
@@ -120,9 +162,11 @@ app.post('/create-bike', async (req, res) => {
       mot
     } = req.body
 
-    // 1. SUBMIT FORM
+    console.log('[create-bike] Starting for registration:', vehicle_registration, 'email:', email)
 
-    await axios.post(
+    // 1. SUBMIT BIKE FORM
+
+    const formResponse = await axios.post(
       'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/3ead7efb-1a49-414b-b924-349eb627eeb8',
       {
         fields: [
@@ -147,7 +191,15 @@ app.post('/create-bike', async (req, res) => {
       }
     )
 
+    console.log('[create-bike] Form submitted OK:', JSON.stringify(formResponse.data, null, 2))
+
+    // SMALL DELAY TO LET HUBSPOT PROCESS THE FORM
+
+    await new Promise(function (resolve) { setTimeout(resolve, 2000) })
+
     // 2. BUSCAR BIKE POR vehicle_registration
+
+    console.log('[create-bike] Searching bike by registration:', vehicle_registration)
 
     const bikeSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/search',
@@ -174,10 +226,17 @@ app.post('/create-bike', async (req, res) => {
       }
     )
 
-    const bikeResults = bikeSearch.data.results
-    const bikeId = bikeResults && bikeResults.length > 0 ? bikeResults[0].id : null
+    console.log('[create-bike] Bike search results:', JSON.stringify(bikeSearch.data, null, 2))
+
+    const bikeId = bikeSearch.data.results && bikeSearch.data.results.length > 0
+      ? bikeSearch.data.results[0].id
+      : null
+
+    console.log('[create-bike] bikeId:', bikeId)
 
     // 3. BUSCAR CONTACTO POR EMAIL
+
+    console.log('[create-bike] Searching contact by email:', email)
 
     const contactSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/contacts/search',
@@ -203,15 +262,24 @@ app.post('/create-bike', async (req, res) => {
       }
     )
 
-    const contactResults = contactSearch.data.results
-    const contactId = contactResults && contactResults.length > 0 ? contactResults[0].id : null
+    console.log('[create-bike] Contact search results:', JSON.stringify(contactSearch.data, null, 2))
+
+    const contactId = contactSearch.data.results && contactSearch.data.results.length > 0
+      ? contactSearch.data.results[0].id
+      : null
+
+    console.log('[create-bike] contactId:', contactId)
 
     // 4. ASOCIAR BIKE CON CONTACTO
 
     if (bikeId && contactId) {
 
-      await axios.put(
-        'https://api.hubapi.com/crm/v4/objects/2-145432491/' + bikeId + '/associations/contacts/' + contactId,
+      const assocUrl = 'https://api.hubapi.com/crm/v4/objects/2-145432491/' + bikeId + '/associations/contacts/' + contactId
+
+      console.log('[create-bike] Associating via URL:', assocUrl)
+
+      const assocResponse = await axios.put(
+        assocUrl,
         [
           {
             associationCategory: 'HUBSPOT_DEFINED',
@@ -226,6 +294,12 @@ app.post('/create-bike', async (req, res) => {
         }
       )
 
+      console.log('[create-bike] Association OK:', JSON.stringify(assocResponse.data, null, 2))
+
+    } else {
+
+      console.log('[create-bike] SKIPPING association - bikeId:', bikeId, '| contactId:', contactId)
+
     }
 
     return res.json({
@@ -236,7 +310,9 @@ app.post('/create-bike', async (req, res) => {
 
   } catch (error) {
 
-    console.log(JSON.stringify(error.response?.data, null, 2))
+    console.log('[create-bike] ERROR status:', error.response?.status)
+    console.log('[create-bike] ERROR data:', JSON.stringify(error.response?.data, null, 2))
+    console.log('[create-bike] ERROR message:', error.message)
 
     return res.status(500).json({
       success: false,
@@ -246,6 +322,7 @@ app.post('/create-bike', async (req, res) => {
   }
 
 })
+
 // UPDATE BIKE - STEP 3
 
 app.post('/update-bike', async (req, res) => {
@@ -262,10 +339,18 @@ app.post('/update-bike', async (req, res) => {
     } = req.body
 
     if (!bikeId) {
+      console.log('[update-bike] ERROR: bikeId is missing')
       return res.status(400).json({ success: false, error: 'bikeId is required' })
     }
 
     console.log('[update-bike] Updating bikeId:', bikeId)
+    console.log('[update-bike] Properties:', {
+      motorcycle_condition,
+      do_you_have_the_keys_and_v5,
+      do_you_know_how_much_you_are_looking_for_,
+      when_are_you_looking_to_sell_your_bike,
+      bike_owner_postal_code
+    })
 
     const response = await axios.patch(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/' + bikeId,
@@ -292,8 +377,8 @@ app.post('/update-bike', async (req, res) => {
 
   } catch (error) {
 
-    console.log('[update-bike] ERROR:', JSON.stringify(error.response?.data, null, 2))
     console.log('[update-bike] ERROR status:', error.response?.status)
+    console.log('[update-bike] ERROR data:', JSON.stringify(error.response?.data, null, 2))
 
     return res.status(500).json({
       success: false,
@@ -308,4 +393,5 @@ const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
   console.log('Server running on port ' + PORT)
+  console.log('HUBSPOT_TOKEN set:', !!process.env.HUBSPOT_TOKEN)
 })
