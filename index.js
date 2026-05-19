@@ -4,8 +4,8 @@ const axios    = require('axios')
 const multer   = require('multer')
 const FormData = require('form-data')
 
-const app     = express()
-const upload  = multer({ storage: multer.memoryStorage() })
+const app    = express()
+const upload = multer({ storage: multer.memoryStorage() })
 
 app.use(cors())
 app.use(express.json())
@@ -82,7 +82,6 @@ app.post('/search-contact', async (req, res) => {
   } catch (error) {
 
     console.log('[search-contact] ERROR:', JSON.stringify(error.response?.data, null, 2))
-
     return res.status(500).json({ success: false, error: error.response?.data || error.message })
 
   }
@@ -125,7 +124,6 @@ app.post('/vehicle', async (req, res) => {
   } catch (error) {
 
     console.log('[vehicle] ERROR:', JSON.stringify(error.response?.data, null, 2))
-
     return res.status(500).json({ success: false, error: error.response?.data || error.message })
 
   }
@@ -186,8 +184,6 @@ app.post('/create-bike', async (req, res) => {
 
     console.log('[create-bike] bikeId:', bikeId)
 
-    console.log('[create-bike] Searching contact...')
-
     const contactSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/contacts/search',
       {
@@ -230,14 +226,13 @@ app.post('/create-bike', async (req, res) => {
     console.log('[create-bike] ERROR status:', error.response?.status)
     console.log('[create-bike] ERROR data:', JSON.stringify(error.response?.data, null, 2))
     console.log('[create-bike] ERROR message:', error.message)
-
     return res.status(500).json({ success: false, error: error.response?.data || error.message })
 
   }
 
 })
 
-// UPDATE BIKE - STEP 3
+// UPDATE BIKE
 
 app.post('/update-bike', async (req, res) => {
 
@@ -281,20 +276,19 @@ app.post('/update-bike', async (req, res) => {
 
     console.log('[update-bike] ERROR status:', error.response?.status)
     console.log('[update-bike] ERROR data:', JSON.stringify(error.response?.data, null, 2))
-
     return res.status(500).json({ success: false, error: error.response?.data || error.message })
 
   }
 
 })
 
-// UPLOAD PHOTOS - STEP 4
+// UPLOAD PHOTOS
 
 app.post('/upload-photos', upload.array('photos', 2), async (req, res) => {
 
   try {
 
-    const { bikeId } = req.body
+    const { bikeId, registration } = req.body
 
     if (!bikeId) {
       console.log('[upload-photos] ERROR: bikeId missing')
@@ -308,23 +302,24 @@ app.post('/upload-photos', upload.array('photos', 2), async (req, res) => {
 
     console.log('[upload-photos] Uploading', req.files.length, 'file(s) for bikeId:', bikeId)
 
-    // 1. UPLOAD EACH FILE TO HUBSPOT FILE MANAGER
-
+    var safeReg      = (registration || 'unknown').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
     var uploadedUrls = []
 
     for (var i = 0; i < req.files.length; i++) {
 
-      var file = req.files[i]
+      var file         = req.files[i]
+      var ext          = file.originalname.split('.').pop().toLowerCase()
+      var safeFilename = safeReg + '-photo-' + (i + 1) + '.' + ext
 
-      console.log('[upload-photos] Uploading file:', file.originalname, 'size:', file.size)
+      console.log('[upload-photos] Uploading file:', safeFilename, 'size:', file.size)
 
       var formData = new FormData()
       formData.append('file', file.buffer, {
-        filename:    file.originalname,
+        filename:    safeFilename,
         contentType: file.mimetype
       })
-      formData.append('folderPath',  '/bike-photos')
-      formData.append('options',     JSON.stringify({ access: 'PUBLIC_INDEXABLE', overwrite: false }))
+      formData.append('folderPath', '/bike-photos')
+      formData.append('options', JSON.stringify({ access: 'PUBLIC_INDEXABLE', overwrite: false }))
 
       var uploadResponse = await axios.post(
         'https://api.hubapi.com/files/v3/files',
@@ -345,8 +340,6 @@ app.post('/upload-photos', upload.array('photos', 2), async (req, res) => {
 
     console.log('[upload-photos] All files uploaded. URLs:', uploadedUrls)
 
-    // 2. GET CURRENT photos PROPERTY TO APPEND (NOT REPLACE)
-
     const bikeResponse = await axios.get(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/' + bikeId + '?properties=photos',
       { headers: { 'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN } }
@@ -354,20 +347,14 @@ app.post('/upload-photos', upload.array('photos', 2), async (req, res) => {
 
     var currentPhotos = bikeResponse.data.properties.photos || ''
 
-    console.log('[upload-photos] Current photos value:', currentPhotos)
-
-    // APPEND NEW URLS TO EXISTING ONES (SEMICOLON SEPARATED)
-
     var existingUrls = currentPhotos
       ? currentPhotos.split(';').map(function (u) { return u.trim() }).filter(function (u) { return u })
       : []
 
-    var allUrls    = existingUrls.concat(uploadedUrls)
+    var allUrls     = existingUrls.concat(uploadedUrls)
     var photosValue = allUrls.join(';')
 
     console.log('[upload-photos] Final photos value:', photosValue)
-
-    // 3. UPDATE BIKE WITH NEW PHOTOS VALUE
 
     await axios.patch(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/' + bikeId,
@@ -384,7 +371,6 @@ app.post('/upload-photos', upload.array('photos', 2), async (req, res) => {
     console.log('[upload-photos] ERROR status:', error.response?.status)
     console.log('[upload-photos] ERROR data:', JSON.stringify(error.response?.data, null, 2))
     console.log('[upload-photos] ERROR message:', error.message)
-
     return res.status(500).json({ success: false, error: error.response?.data || error.message })
 
   }
