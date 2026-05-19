@@ -278,22 +278,24 @@ app.post('/create-bike', async (req, res) => {
 
       console.log('[create-bike] Associating via URL:', assocUrl)
 
-      const assocResponse = await axios.put(
-        assocUrl,
-        [
-          {
-            associationCategory: 'HUBSPOT_DEFINED',
-            associationTypeId: 1
-          }
-        ],
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
-          }
-        }
-      )
-
+   const assocResponse = await axios.put(
+  'https://api.hubapi.com/crm/v3/associations/2-145432491/contacts/batch/create',
+  {
+    inputs: [
+      {
+        from: { id: bikeId },
+        to: { id: contactId },
+        type: 'bike_to_contact'
+      }
+    ]
+  },
+  {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN
+    }
+  }
+)
       console.log('[create-bike] Association OK:', JSON.stringify(assocResponse.data, null, 2))
 
     } else {
