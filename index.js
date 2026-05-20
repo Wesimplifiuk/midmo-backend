@@ -205,27 +205,40 @@ app.post('/create-bike', async (req, res) => {
 
     console.log('[create-bike] Form OK:', JSON.stringify(formResponse.data, null, 2))
 
-    await new Promise(function (resolve) { setTimeout(resolve, 2000) })
-
     console.log('[create-bike] Searching bike...')
 
-    const bikeSearch = await axios.post(
-      'https://api.hubapi.com/crm/v3/objects/2-145432491/search',
-      {
-        filterGroups: [
-          { filters: [{ propertyName: 'vehicle_registration', operator: 'EQ', value: vehicle_registration }] }
-        ],
-        sorts: [{ propertyName: 'createdate', direction: 'DESCENDING' }],
-        limit: 1
-      },
-      { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN } }
-    )
+    // Retry up to 5 times with 2s delay to give HubSpot time to create the object
+    let bikeId   = null
+    let attempts = 0
 
-    const bikeId = bikeSearch.data.results && bikeSearch.data.results.length > 0
-      ? bikeSearch.data.results[0].id
-      : null
+    while (!bikeId && attempts < 5) {
 
-    console.log('[create-bike] bikeId:', bikeId)
+      attempts++
+      await new Promise(function (resolve) { setTimeout(resolve, 2000) })
+
+      console.log('[create-bike] Search attempt', attempts)
+
+      const bikeSearch = await axios.post(
+        'https://api.hubspot.com/crm/v3/objects/2-145432491/search',
+        {
+          filterGroups: [
+            { filters: [{ propertyName: 'vehicle_registration', operator: 'EQ', value: vehicle_registration }] }
+          ],
+          sorts: [{ propertyName: 'createdate', direction: 'DESCENDING' }],
+          limit: 1
+        },
+        { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN } }
+      )
+
+      if (bikeSearch.data.results && bikeSearch.data.results.length > 0) {
+        bikeId = bikeSearch.data.results[0].id
+      }
+
+      console.log('[create-bike] attempt', attempts, '- bikeId:', bikeId)
+
+    }
+
+    console.log('[create-bike] bikeId after retries:', bikeId)
 
     const contactSearch = await axios.post(
       'https://api.hubapi.com/crm/v3/objects/contacts/search',
