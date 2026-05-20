@@ -130,6 +130,49 @@ app.post('/vehicle', async (req, res) => {
 
 })
 
+// VEHICLE FULL DATA
+
+app.post('/vehicle-full', async (req, res) => {
+
+  try {
+
+    const { registration } = req.body
+
+    if (!registration) {
+      return res.status(400).json({ success: false, error: 'registration is required' })
+    }
+
+    console.log('[vehicle-full] Looking up registration:', registration)
+
+    const vehicleResponse = await axios.get(
+      'https://uk1.ukvehicledata.co.uk/api/datapackage/VehicleData',
+      {
+        params: {
+          auth_apikey:   '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
+          key_VRM:       registration,
+          api_nullitems: 1
+        }
+      }
+    )
+
+    const data = vehicleResponse.data.Response.DataItems
+
+    console.log('[vehicle-full] Full data received:', JSON.stringify(data, null, 2))
+
+    return res.json({
+      success: true,
+      data: data
+    })
+
+  } catch (error) {
+
+    console.log('[vehicle-full] ERROR:', JSON.stringify(error.response?.data, null, 2))
+    return res.status(500).json({ success: false, error: error.response?.data || error.message })
+
+  }
+
+})
+
 // CREATE BIKE
 
 app.post('/create-bike', async (req, res) => {
@@ -240,6 +283,7 @@ app.post('/update-bike', async (req, res) => {
 
     const {
       bikeId,
+      vehicle_registration,
       motorcycle_condition,
       do_you_have_the_keys_and_v5,
       do_you_know_how_much_you_are_looking_for_,
@@ -254,6 +298,56 @@ app.post('/update-bike', async (req, res) => {
 
     console.log('[update-bike] Updating bikeId:', bikeId)
 
+    // Fetch vehicle API data to populate missing fields
+    let vehicleApiProps = {}
+
+    if (vehicle_registration) {
+
+      try {
+
+        console.log('[update-bike] Fetching vehicle data for:', vehicle_registration)
+
+        const vehicleResponse = await axios.get(
+          'https://uk1.ukvehicledata.co.uk/api/datapackage/VehicleData',
+          {
+            params: {
+              auth_apikey:   '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
+              key_VRM:       vehicle_registration,
+              api_nullitems: 1
+            }
+          }
+        )
+
+        const data      = vehicleResponse.data.Response.DataItems
+        const motEvents = data.MotHistory?.MotEvents || []
+        const lastMot   = motEvents[0] || {}
+
+        vehicleApiProps = {
+          date_first_registered_uk:  data.VehicleRegistration?.DateFirstRegisteredUk  || '',
+          keeper_changes_count:      data.VehicleHistory?.NumberOfPreviousKeepers      ?? '',
+          last_mot_date:             lastMot.CompletedDate                             || '',
+          last_mot_expiry_date:      lastMot.ExpiryDate                                || '',
+          last_mot_mileage:          lastMot.OdometerReading                           ?? '',
+          last_mot_results:          lastMot.TestResult                                || '',
+          miles_since_last_pass2:    lastMot.OdometerReading                           ?? '',
+          mot_count:                 data.MotHistory?.RecordCount                      ?? '',
+          next_mot_due_date:         lastMot.ExpiryDate                                || '',
+          advisory_notes:            Array.isArray(lastMot.Advisories)
+                                       ? lastMot.Advisories.join('; ')
+                                       : (lastMot.Advisories || ''),
+          days_out_of_last_mot:      lastMot.DaysSinceLastMotTest                      ?? ''
+        }
+
+        console.log('[update-bike] Vehicle API props fetched OK')
+
+      } catch (vehicleError) {
+
+        console.log('[update-bike] Vehicle API fetch failed (non-fatal):', vehicleError.message)
+
+      }
+
+    }
+
     const response = await axios.patch(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/' + bikeId,
       {
@@ -262,7 +356,8 @@ app.post('/update-bike', async (req, res) => {
           do_you_have_the_keys_and_v5:               do_you_have_the_keys_and_v5,
           do_you_know_how_much_you_are_looking_for_: do_you_know_how_much_you_are_looking_for_,
           when_are_you_looking_to_sell_your_bike:    when_are_you_looking_to_sell_your_bike,
-          bike_owner_postal_code:                    bike_owner_postal_code
+          bike_owner_postal_code:                    bike_owner_postal_code,
+          ...vehicleApiProps
         }
       },
       { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN } }
