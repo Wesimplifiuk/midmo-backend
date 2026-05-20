@@ -340,34 +340,56 @@ app.post('/update-bike', async (req, res) => {
           }
         )
 
-        const data      = vehicleResponse.data.Response.DataItems
-        const motEvents = data.MotHistory?.MotEvents || []
-        const lastMot   = motEvents[0] || {}
+        const data = vehicleResponse.data.Response.DataItems
 
         console.log('[update-bike] Raw VehicleRegistration:', JSON.stringify(data.VehicleRegistration, null, 2))
         console.log('[update-bike] Raw VehicleHistory:', JSON.stringify(data.VehicleHistory, null, 2))
-        console.log('[update-bike] Raw MotHistory.RecordCount:', data.MotHistory?.RecordCount)
-        console.log('[update-bike] Raw MotEvents count:', motEvents.length)
+
+        // Second call - MotHistoryData package
+        const motResponse = await axios.get(
+          'https://uk1.ukvehicledata.co.uk/api/datapackage/MotHistoryData',
+          {
+            params: {
+              auth_apikey:   '85F49083-9EB4-4C88-9C63-3DC40B79A30B',
+              key_VRM:       vehicle_registration,
+              api_nullitems: 1
+            }
+          }
+        )
+
+        const motData   = motResponse.data.Response.DataItems
+        const recordList = motData.MotHistory?.RecordList || []
+        const lastMot    = recordList[0] || {}
+
+        console.log('[update-bike] Raw MotHistory.RecordCount:', motData.MotHistory?.RecordCount)
+        console.log('[update-bike] Raw RecordList count:', recordList.length)
         console.log('[update-bike] Raw lastMot:', JSON.stringify(lastMot, null, 2))
 
-        const toTimestamp = (isoString) => {
-          if (!isoString) return ''
-          const ms = new Date(isoString).getTime()
+        const toTimestamp = (dateString) => {
+          if (!dateString) return ''
+          // Handle DD/MM/YYYY format from MotHistoryData
+          const parts = dateString.split('/')
+          if (parts.length === 3) {
+            const ms = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime()
+            return isNaN(ms) ? '' : ms
+          }
+          // Handle ISO format from VehicleData
+          const ms = new Date(dateString).getTime()
           return isNaN(ms) ? '' : ms
         }
 
+        const advisories = lastMot.AdvisoryNoticeList || []
+
         vehicleApiProps = {
           date_first_registered_uk: toTimestamp(data.VehicleRegistration?.DateFirstRegisteredUk),
-          keeper_changes_count:     data.VehicleHistory?.NumberOfPreviousKeepers ?? '',
-          last_mot_date:            toTimestamp(lastMot.CompletedDate),
+          keeper_changes_count:     data.VehicleHistory?.NumberOfPreviousKeepers   ?? '',
+          mot_count:                motData.MotHistory?.RecordCount                ?? '',
+          last_mot_date:            toTimestamp(lastMot.TestDate),
           last_mot_expiry_date:     toTimestamp(lastMot.ExpiryDate),
-          last_mot_mileage:         lastMot.OdometerReading                      ?? '',
-          last_mot_results:         lastMot.TestResult                           || '',
-          mot_count:                data.MotHistory?.RecordCount                 ?? '',
-          next_mot_due_date:        toTimestamp(lastMot.ExpiryDate),
-          advisory_notes:           Array.isArray(lastMot.Advisories)
-                                      ? lastMot.Advisories.join('; ')
-                                      : (lastMot.Advisories || '')
+          next_mot_due_date:        toTimestamp(motData.VehicleStatus?.NextMotDueDate),
+          last_mot_mileage:         lastMot.OdometerReading                        ?? '',
+          last_mot_results:         lastMot.TestResult                             || '',
+          advisory_notes:           advisories.join('; ')
         }
 
         console.log('[update-bike] vehicleApiProps to be sent:', JSON.stringify(vehicleApiProps, null, 2))
