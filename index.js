@@ -335,20 +335,24 @@ app.post('/update-bike', async (req, res) => {
         const motEvents = data.MotHistory?.MotEvents || []
         const lastMot   = motEvents[0] || {}
 
+        const toTimestamp = (isoString) => {
+          if (!isoString) return ''
+          const ms = new Date(isoString).getTime()
+          return isNaN(ms) ? '' : ms
+        }
+
         vehicleApiProps = {
-          date_first_registered_uk:  data.VehicleRegistration?.DateFirstRegisteredUk  || '',
-          keeper_changes_count:      data.VehicleHistory?.NumberOfPreviousKeepers      ?? '',
-          last_mot_date:             lastMot.CompletedDate                             || '',
-          last_mot_expiry_date:      lastMot.ExpiryDate                                || '',
-          last_mot_mileage:          lastMot.OdometerReading                           ?? '',
-          last_mot_results:          lastMot.TestResult                                || '',
-          miles_since_last_pass2:    lastMot.OdometerReading                           ?? '',
-          mot_count:                 data.MotHistory?.RecordCount                      ?? '',
-          next_mot_due_date:         lastMot.ExpiryDate                                || '',
-          advisory_notes:            Array.isArray(lastMot.Advisories)
-                                       ? lastMot.Advisories.join('; ')
-                                       : (lastMot.Advisories || ''),
-          days_out_of_last_mot:      lastMot.DaysSinceLastMotTest                      ?? ''
+          date_first_registered_uk: toTimestamp(data.VehicleRegistration?.DateFirstRegisteredUk),
+          keeper_changes_count:     data.VehicleHistory?.NumberOfPreviousKeepers ?? '',
+          last_mot_date:            toTimestamp(lastMot.CompletedDate),
+          last_mot_expiry_date:     toTimestamp(lastMot.ExpiryDate),
+          last_mot_mileage:         lastMot.OdometerReading                      ?? '',
+          last_mot_results:         lastMot.TestResult                           || '',
+          mot_count:                data.MotHistory?.RecordCount                 ?? '',
+          next_mot_due_date:        toTimestamp(lastMot.ExpiryDate),
+          advisory_notes:           Array.isArray(lastMot.Advisories)
+                                      ? lastMot.Advisories.join('; ')
+                                      : (lastMot.Advisories || '')
         }
 
         console.log('[update-bike] Vehicle API props fetched OK')
