@@ -310,6 +310,15 @@ app.post('/update-bike', async (req, res) => {
     }
 
     console.log('[update-bike] Updating bikeId:', bikeId)
+    console.log('[update-bike] Body received:', JSON.stringify({
+      bikeId,
+      vehicle_registration,
+      motorcycle_condition,
+      do_you_have_the_keys_and_v5,
+      do_you_know_how_much_you_are_looking_for_,
+      when_are_you_looking_to_sell_your_bike,
+      bike_owner_postal_code
+    }, null, 2))
 
     // Fetch vehicle API data to populate missing fields
     let vehicleApiProps = {}
@@ -335,6 +344,12 @@ app.post('/update-bike', async (req, res) => {
         const motEvents = data.MotHistory?.MotEvents || []
         const lastMot   = motEvents[0] || {}
 
+        console.log('[update-bike] Raw VehicleRegistration:', JSON.stringify(data.VehicleRegistration, null, 2))
+        console.log('[update-bike] Raw VehicleHistory:', JSON.stringify(data.VehicleHistory, null, 2))
+        console.log('[update-bike] Raw MotHistory.RecordCount:', data.MotHistory?.RecordCount)
+        console.log('[update-bike] Raw MotEvents count:', motEvents.length)
+        console.log('[update-bike] Raw lastMot:', JSON.stringify(lastMot, null, 2))
+
         const toTimestamp = (isoString) => {
           if (!isoString) return ''
           const ms = new Date(isoString).getTime()
@@ -355,7 +370,7 @@ app.post('/update-bike', async (req, res) => {
                                       : (lastMot.Advisories || '')
         }
 
-        console.log('[update-bike] Vehicle API props fetched OK')
+        console.log('[update-bike] vehicleApiProps to be sent:', JSON.stringify(vehicleApiProps, null, 2))
 
       } catch (vehicleError) {
 
@@ -363,24 +378,30 @@ app.post('/update-bike', async (req, res) => {
 
       }
 
+    } else {
+
+      console.log('[update-bike] WARNING: vehicle_registration not received - skipping vehicle API fetch')
+
     }
+
+    const hubspotPayload = {
+      motorcycle_condition:                      motorcycle_condition,
+      do_you_have_the_keys_and_v5:               do_you_have_the_keys_and_v5,
+      do_you_know_how_much_you_are_looking_for_: do_you_know_how_much_you_are_looking_for_,
+      when_are_you_looking_to_sell_your_bike:    when_are_you_looking_to_sell_your_bike,
+      bike_owner_postal_code:                    bike_owner_postal_code,
+      ...vehicleApiProps
+    }
+
+    console.log('[update-bike] Final HubSpot payload:', JSON.stringify(hubspotPayload, null, 2))
 
     const response = await axios.patch(
       'https://api.hubapi.com/crm/v3/objects/2-145432491/' + bikeId,
-      {
-        properties: {
-          motorcycle_condition:                      motorcycle_condition,
-          do_you_have_the_keys_and_v5:               do_you_have_the_keys_and_v5,
-          do_you_know_how_much_you_are_looking_for_: do_you_know_how_much_you_are_looking_for_,
-          when_are_you_looking_to_sell_your_bike:    when_are_you_looking_to_sell_your_bike,
-          bike_owner_postal_code:                    bike_owner_postal_code,
-          ...vehicleApiProps
-        }
-      },
+      { properties: hubspotPayload },
       { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.HUBSPOT_TOKEN } }
     )
 
-    console.log('[update-bike] Success:', JSON.stringify(response.data, null, 2))
+    console.log('[update-bike] HubSpot response:', JSON.stringify(response.data, null, 2))
 
     return res.json({ success: true, data: response.data })
 
