@@ -179,7 +179,7 @@ app.post('/create-bike', async (req, res) => {
 
   try {
 
-    const { email, vehicle_registration, make, model, variant, engine_capacity, mileage, year, colour, mot } = req.body
+    const { email, vehicle_registration, make, model, variant, engine_capacity, mileage, year, colour } = req.body
 
     console.log('[create-bike] Starting - registration:', vehicle_registration, '| email:', email)
 
@@ -196,7 +196,7 @@ app.post('/create-bike', async (req, res) => {
           { name: '2-145432491/mileage',              value: mileage ? Number(mileage) : 0 },
           { name: '2-145432491/year',                 value: year ? new Date(year + '-01-01').getTime() : null },
           { name: '2-145432491/colour',               value: colour },
-          { name: '2-145432491/mot',                  value: Array.isArray(mot) ? mot.join(';') : mot }
+        
         ],
         context: { pageUri: 'https://motortradeteam.com', pageName: 'Bike Form' }
       },
