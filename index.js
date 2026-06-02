@@ -195,9 +195,21 @@ app.post('/create-bike', async (req, res) => {
           { name: '2-145432491/engine_capacity',      value: engine_capacity ? Number(engine_capacity) : 0 },
           { name: '2-145432491/mileage',              value: mileage ? Number(mileage) : 0 },
           { name: '2-145432491/year',                 value: year ? new Date(year + '-01-01').getTime() : null },
-          { name: '2-145432491/colour',               value: colour },
-        
+          { name: '2-145432491/colour',               value: colour }
         ],
+        legalConsentOptions: {
+          consent: {
+            consentToProcess: true,
+            text: 'I agree to allow midmo ltd to store and process my personal data.',
+            communications: [
+              {
+                value: true,
+                subscriptionTypeId: 145536792,
+                text: 'I agree to receive other communications from midmo ltd.'
+              }
+            ]
+          }
+        },
         context: { pageUri: 'https://motortradeteam.com', pageName: 'Bike Form' }
       },
       { headers: { 'Content-Type': 'application/json' } }
