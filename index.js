@@ -61,7 +61,7 @@ app.post('/batch-create', async (req, res) => {
   try {
 
     const {
-      firstname, lastname, email, phone, marketing_consent, data_consent,
+      firstname, lastname, email, phone,
       vehicle_registration, make, model, variant, engine_capacity, mileage, year, colour
     } = req.body
 
@@ -75,12 +75,10 @@ app.post('/batch-create', async (req, res) => {
           {
             properties: {
               firstname: firstname || '',
-              lastname: lastname || '',
-              email: email || '',
-              phone: phone || '',
-              hs_lead_status: 'NEW',
-              marketing_consent: marketing_consent ? 'true' : 'false',
-              data_consent: data_consent ? 'true' : 'false'
+              lastname:  lastname  || '',
+              email:     email     || '',
+              phone:     phone     || '',
+              hs_lead_status: 'NEW'
             }
           }
         ]
