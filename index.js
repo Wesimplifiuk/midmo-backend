@@ -182,34 +182,22 @@ app.post('/create-bike', async (req, res) => {
     const { email, vehicle_registration, make, model, variant, engine_capacity, mileage, year, colour } = req.body
 
     console.log('[create-bike] Starting - registration:', vehicle_registration, '| email:', email)
+    console.log('[create-bike] Body received:', JSON.stringify(req.body, null, 2))
 
     const formResponse = await axios.post(
       'https://api-eu1.hsforms.com/submissions/v3/integration/submit/146536792/3ead7efb-1a49-414b-b924-349eb627eeb8',
       {
         fields: [
-          { name: 'email',                            value: email },
-          { name: '2-145432491/vehicle_registration', value: vehicle_registration },
-          { name: '2-145432491/make',                 value: make },
-          { name: '2-145432491/model',                value: model },
-          { name: '2-145432491/trim',                 value: variant },
-          { name: '2-145432491/engine_capacity',      value: engine_capacity ? Number(engine_capacity) : 0 },
-          { name: '2-145432491/mileage',              value: mileage ? Number(mileage) : 0 },
-          { name: '2-145432491/year',                 value: year ? new Date(year + '-01-01').getTime() : null },
-          { name: '2-145432491/colour',               value: colour }
+          { name: 'email',                            value: email || '' },
+          { name: '2-145432491/vehicle_registration', value: vehicle_registration || '' },
+          { name: '2-145432491/make',                 value: make || '' },
+          { name: '2-145432491/model',                value: model || '' },
+          { name: '2-145432491/trim',                 value: variant || '' },
+          { name: '2-145432491/engine_capacity',      value: engine_capacity ? String(engine_capacity) : '' },
+          { name: '2-145432491/mileage',              value: mileage ? String(mileage) : '' },
+          { name: '2-145432491/year',                 value: year ? String(year) : '' },
+          { name: '2-145432491/colour',               value: colour || '' }
         ],
-        legalConsentOptions: {
-          consent: {
-            consentToProcess: true,
-            text: 'I agree to allow midmo ltd to store and process my personal data.',
-            communications: [
-              {
-                value: true,
-                subscriptionTypeId: 145536792,
-                text: 'I agree to receive other communications from midmo ltd.'
-              }
-            ]
-          }
-        },
         context: { pageUri: 'https://motortradeteam.com', pageName: 'Bike Form' }
       },
       { headers: { 'Content-Type': 'application/json' } }
