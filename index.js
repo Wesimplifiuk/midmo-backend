@@ -1,22 +1,29 @@
-const express = require('express');
+app.post('/hubspot-webhook', async (req, res) => {
+  res.status(200).send('OK')
 
-const app = express();
+  const event = req.body[0]
+  const contactId = event.objectId
 
-app.use(express.json());
+  const response = await fetch(
+    `https://api.hubapi.com/crm/v3/objects/contacts/${contactId}?properties=hs_object_source_detail_1`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.HUBSPOT_TOKEN}`
+      }
+    }
+  )
 
-app.get('/', (req, res) => {
-  res.send('Webhook running');
-});
+  const contact = await response.json()
 
-app.post('/hubspot-webhook', (req, res) => {
-  console.log('========== HUBSPOT WEBHOOK ==========');
-  console.log(JSON.stringify(req.body, null, 2));
+  const sourceDetail =
+    contact.properties.hs_object_source_detail_1
 
-  res.status(200).send('OK');
-});
+  if (sourceDetail !== 'New Complete Forms') {
+    console.log('Ignoring contact')
+    return
+  }
 
-const PORT = process.env.PORT || 3000;
+  console.log('Processing contact', contactId)
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  // continuar flujo
+})
