@@ -1,3 +1,15 @@
+const express  = require('express')
+const cors     = require('cors')
+const axios    = require('axios')
+const multer   = require('multer')
+const FormData = require('form-data')
+
+const app    = express()
+const upload = multer({ storage: multer.memoryStorage() })
+
+app.use(cors())
+app.use(express.json())
+
 app.post('/hubspot-webhook', async (req, res) => {
   res.status(200).send('OK')
 
@@ -26,4 +38,11 @@ app.post('/hubspot-webhook', async (req, res) => {
   console.log('Processing contact', contactId)
 
   // continuar flujo
+})
+
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, () => {
+  console.log('Server running on port ' + PORT)
+  console.log('HUBSPOT_TOKEN set:', !!process.env.HUBSPOT_TOKEN)
 })
