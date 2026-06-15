@@ -54,6 +54,15 @@ const toTimestamp = (dateString) => {
   return isNaN(ms) ? '' : ms
 }
 
+// HubSpot "date" properties must be a millisecond timestamp at MIDNIGHT UTC.
+// A bare year like 2023 fails with INVALID_DATE, so build Jan 1st @ 00:00 UTC.
+const yearToMidnightUtc = (year) => {
+  if (!year) return ''
+  const y = parseInt(year, 10)
+  if (isNaN(y)) return ''
+  return Date.UTC(y, 0, 1)
+}
+
 // Pull the bike objectId out of whatever shape HubSpot sends.
 const extractObjectId = (payload) => {
   if (!payload) return null
@@ -92,10 +101,21 @@ const buildVehicleProps = async (registration) => {
 
   const data = vehicleResponse.data.Response.DataItems
 
+  console.log('[UK API][VehicleData] Raw response for ' + registration + ':', JSON.stringify({
+    Make:                  data.ClassificationDetails?.Smmt?.Make,
+    Range:                 data.ClassificationDetails?.Smmt?.Range,
+    ModelVariant:          data.SmmtDetails?.ModelVariant,
+    YearOfManufacture:     data.VehicleRegistration?.YearOfManufacture,
+    EngineCapacity:        data.VehicleRegistration?.EngineCapacity,
+    Colour:                data.VehicleRegistration?.Colour,
+    DateFirstRegisteredUk: data.VehicleRegistration?.DateFirstRegisteredUk,
+    NumberOfPreviousKeepers: data.VehicleHistory?.NumberOfPreviousKeepers
+  }, null, 2))
+
   props.make            = data.ClassificationDetails?.Smmt?.Make      || ''
   props.model           = data.ClassificationDetails?.Smmt?.Range     || ''
   props.trim            = data.SmmtDetails?.ModelVariant               || ''
-  props.year            = data.VehicleRegistration?.YearOfManufacture  ? String(data.VehicleRegistration.YearOfManufacture) : ''
+  props.year            = yearToMidnightUtc(data.VehicleRegistration?.YearOfManufacture)
   props.engine_capacity = data.VehicleRegistration?.EngineCapacity     ? String(data.VehicleRegistration.EngineCapacity)    : ''
   props.colour          = data.VehicleRegistration?.Colour            || ''
 
@@ -119,6 +139,16 @@ const buildVehicleProps = async (registration) => {
     const recordList = motData.MotHistory?.RecordList || []
     const lastMot    = recordList[0] || {}
     const advisories = lastMot.AdvisoryNoticeList || []
+
+    console.log('[UK API][MotHistoryData] Raw response for ' + registration + ':', JSON.stringify({
+      RecordCount:    motData.MotHistory?.RecordCount,
+      NextMotDueDate: motData.VehicleStatus?.NextMotDueDate,
+      TestDate:       lastMot.TestDate,
+      ExpiryDate:     lastMot.ExpiryDate,
+      OdometerReading: lastMot.OdometerReading,
+      TestResult:     lastMot.TestResult,
+      AdvisoryNoticeList: advisories
+    }, null, 2))
 
     props.mot_count            = motData.MotHistory?.RecordCount        ?? ''
     props.last_mot_date        = toTimestamp(lastMot.TestDate)
