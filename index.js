@@ -12,7 +12,7 @@ app.use(express.json())
 // ---------------------------------------------------------------------------
 
 const BIKE_OBJECT_TYPE = '2-145432491'
-const UKVD_API_KEY     = '85F49083-9EB4-4C88-9C63-3DC40B79A30B'
+const UKVD_API_KEY     = process.env.UKVD_API_KEY
 
 const hubspotHeaders = {
   'Content-Type':  'application/json',
