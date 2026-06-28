@@ -183,6 +183,9 @@ const buildVehicleProps = async (registration) => {
     props.brego_trade_average  = bregoData?.brego_trade_average  ?? ''
   } catch (bregoError) {
     console.log('[hubspot-webhook] Brego fetch failed (non-fatal):', bregoError.message)
+    console.log('[Brego][Error] status:', bregoError.response?.status)
+    console.log('[Brego][Error] data:', JSON.stringify(bregoError.response?.data, null, 2))
+    console.log('[Brego][Error] key present:', !!BREGO_API_KEY, '| key length:', BREGO_API_KEY ? BREGO_API_KEY.length : 0)
   }
 
   return props
