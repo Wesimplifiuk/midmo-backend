@@ -174,10 +174,7 @@ const buildVehicleProps = async (registration) => {
 
     const bregoData = bregoResponse.data
 
-    console.log('[Brego][Valuations] Raw response for ' + registration + ':', JSON.stringify({
-      brego_retail_average: bregoData?.brego_retail_average,
-      brego_trade_average:  bregoData?.brego_trade_average
-    }, null, 2))
+    console.log('[Brego][Valuations] FULL raw response for ' + registration + ':', JSON.stringify(bregoData, null, 2))
 
     props.brego_retail_average = bregoData?.brego_retail_average ?? ''
     props.brego_trade_average  = bregoData?.brego_trade_average  ?? ''
