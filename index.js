@@ -181,7 +181,7 @@ const buildVehicleProps = async (registration) => {
     props.brego_trade_average  = bregoValuation?.trade?.average  ?? ''
 
     // Human-readable pricing summary (no tags / no JSON) for the client to read
-    const currency = (bregoData?.currencyCode || 'gbp').toUpperCase()
+    const currency = (bregoData?.currencyCode || '£').toUpperCase()
     const mileageUnit = bregoData?.mileageUnit || 'mi'
     const money = (value) =>
       (value === undefined || value === null) ? 'N/A' : currency + ' ' + Number(value).toLocaleString('en-GB')
@@ -189,12 +189,12 @@ const buildVehicleProps = async (registration) => {
     const fullPricingLines = [
       'VEHICLE VALUATION',
       '',
-      'Retail price (what a dealer would sell it for):',
+      'Retail price :',
       '  Low:     ' + money(bregoValuation?.retail?.low),
       '  Average: ' + money(bregoValuation?.retail?.average),
       '  High:    ' + money(bregoValuation?.retail?.high),
       '',
-      'Trade price (what a dealer would pay for it):',
+      'Trade price :',
       '  Low:     ' + money(bregoValuation?.trade?.low),
       '  Average: ' + money(bregoValuation?.trade?.average),
       '  High:    ' + money(bregoValuation?.trade?.high),
