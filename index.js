@@ -173,11 +173,13 @@ const buildVehicleProps = async (registration) => {
     )
 
     const bregoData = bregoResponse.data
+    const bregoValuation = bregoData?.items?.[0]
 
-    console.log('[Brego][Valuations] FULL raw response for ' + registration + ':', JSON.stringify(bregoData, null, 2))
+    console.log('[Brego][Valuations] retail average:', bregoValuation?.retail?.average, '| trade average:', bregoValuation?.trade?.average)
 
-    props.brego_retail_average = bregoData?.brego_retail_average ?? ''
-    props.brego_trade_average  = bregoData?.brego_trade_average  ?? ''
+    props.brego_retail_average = bregoValuation?.retail?.average ?? ''
+    props.brego_trade_average  = bregoValuation?.trade?.average  ?? ''
+    props.brego_full_pricing   = JSON.stringify(bregoData)
   } catch (bregoError) {
     console.log('[hubspot-webhook] Brego fetch failed (non-fatal):', bregoError.message)
     console.log('[Brego][Error] status:', bregoError.response?.status)
