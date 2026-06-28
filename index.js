@@ -13,6 +13,7 @@ app.use(express.json())
 
 const BIKE_OBJECT_TYPE = '2-145432491'
 const UKVD_API_KEY     = process.env.UKVD_API_KEY
+const BREGO_API_KEY    = process.env.BREGO_API_KEY
 
 const hubspotHeaders = {
   'Content-Type':  'application/json',
@@ -159,6 +160,29 @@ const buildVehicleProps = async (registration) => {
     props.advisory_notes       = advisories.join('; ')
   } catch (motError) {
     console.log('[hubspot-webhook] MOT fetch failed (non-fatal):', motError.message)
+  }
+
+  // 3) Brego valuation (Sandbox)
+  try {
+    const bregoResponse = await axios.get(
+      'https://sandbox.api.brego.io/v1/vehicles/vrm/' + registration + '/valuations',
+      {
+        params:  { countryCode: 'gb' },
+        headers: { 'X-API-Key': BREGO_API_KEY }
+      }
+    )
+
+    const bregoData = bregoResponse.data
+
+    console.log('[Brego][Valuations] Raw response for ' + registration + ':', JSON.stringify({
+      brego_retail_average: bregoData?.brego_retail_average,
+      brego_trade_average:  bregoData?.brego_trade_average
+    }, null, 2))
+
+    props.brego_retail_average = bregoData?.brego_retail_average ?? ''
+    props.brego_trade_average  = bregoData?.brego_trade_average  ?? ''
+  } catch (bregoError) {
+    console.log('[hubspot-webhook] Brego fetch failed (non-fatal):', bregoError.message)
   }
 
   return props
