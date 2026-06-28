@@ -179,7 +179,31 @@ const buildVehicleProps = async (registration) => {
 
     props.brego_retail_average = bregoValuation?.retail?.average ?? ''
     props.brego_trade_average  = bregoValuation?.trade?.average  ?? ''
-    props.brego_full_pricing   = JSON.stringify(bregoData)
+
+    // Human-readable pricing summary (no tags / no JSON) for the client to read
+    const currency = (bregoData?.currencyCode || 'gbp').toUpperCase()
+    const mileageUnit = bregoData?.mileageUnit || 'mi'
+    const money = (value) =>
+      (value === undefined || value === null) ? 'N/A' : currency + ' ' + Number(value).toLocaleString('en-GB')
+
+    const fullPricingLines = [
+      'VEHICLE VALUATION',
+      '',
+      'Retail price (what a dealer would sell it for):',
+      '  Low:     ' + money(bregoValuation?.retail?.low),
+      '  Average: ' + money(bregoValuation?.retail?.average),
+      '  High:    ' + money(bregoValuation?.retail?.high),
+      '',
+      'Trade price (what a dealer would pay for it):',
+      '  Low:     ' + money(bregoValuation?.trade?.low),
+      '  Average: ' + money(bregoValuation?.trade?.average),
+      '  High:    ' + money(bregoValuation?.trade?.high),
+      '',
+      'Based on mileage: ' + (bregoValuation?.mileage != null ? Number(bregoValuation.mileage).toLocaleString('en-GB') + ' ' + mileageUnit : 'N/A'),
+      'Valuation date:    ' + (bregoValuation?.date || 'N/A')
+    ]
+
+    props.brego_full_pricing = fullPricingLines.join('\n')
   } catch (bregoError) {
     console.log('[hubspot-webhook] Brego fetch failed (non-fatal):', bregoError.message)
     console.log('[Brego][Error] status:', bregoError.response?.status)
