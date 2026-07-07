@@ -165,7 +165,7 @@ const buildVehicleProps = async (registration) => {
   // 3) Brego valuation (Sandbox)
   try {
     const bregoResponse = await axios.get(
-      'https://sandbox.api.brego.io/v1/vehicles/vrm/' + registration + '/valuations',
+      'https://api.brego.io/v1/vehicles/vrm/' + registration + '/valuations',
       {
         params:  { countryCode: 'gb' },
         headers: { 'X-API-Key': BREGO_API_KEY }
